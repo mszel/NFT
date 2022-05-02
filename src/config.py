@@ -6,19 +6,20 @@
 # Runtime Parameters                                             #
 ##################################################################
 
-PARAM_batchsize = 500000      # size of read rows at once
-PARAM_njobs = 2               # of processors used at parallel computation
-PARAM_categorylist = ['Art']  # kept categories (empty=all)
-PARAM_raw_cleanup = False     # if True, delete all temp tables before start
-PARAM_raw_append = False      # if True, will not calculate the already existing tables (checing the rownums - not an active function as of now)
+# API parameters
+PARAM_API_batch = 300             # load lines by API request (max possible is 300)
+
+# ETL parameters
+PARAM_ETL_njobs = 2               # of processors used at parallel computation
+PARAM_ETL_raw_cleanup = False     # if True, delete all temp tables before start
+PARAM_ETL_raw_append = False      # if True, will not calculate the already existing tables (checing the rownums - not an active function as of now)
 
 
 ##################################################################
 # Data Sources: Raw Data Layer                                   #
 ##################################################################
 
-PATH_00RAW_API_input_folder = './data/00_raw/'
-PATH_00RAW_API_input_filename = ''
+PATH_00RAW_API_dump_main = './data/00_dump/' # the folder the API load the data
 
 
 ##################################################################

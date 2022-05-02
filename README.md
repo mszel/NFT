@@ -5,80 +5,92 @@ Laszlo Albert Barabási wrote in one of his books ([The Formula, 2018](https://w
 > “Performance drives success, but when performance can’t be measured, networks drive success”.
 > 
 
-So let’s use this idea on [OpenSea’](https://opensea.io/)s NFT dataset, where all the transactions are public. So even if we cannot decide the value of an NFT for the first sight, we might be able to predict its future value from its earlier owners, creators, etc. 
+So let’s use this idea on [OpenSea’](https://opensea.io/)s NFT dataset, where all the transactions are public. So even if we cannot decide the value of an NFT at the first sight, we might be able to predict its future value from its earlier owners, creators, etc. We will try out several further techniques, and at the very end, suggest an optimal portfolio for a given capital (considering risk, etc.). 
 
 # Content
 
-This GitHub page contains the following folders.
+This GitHub page contains notebooks in the main folder that substitute the usual “main” function: you can call all the major functions from there, like downloading NFT data using OpenSea API, running the ETLs, running the analysis, or optimizing the investments.
 
-## Notebooks on the Main Folder
+The majority of the functions are written both in PANDAS and PYSPARK (this can be set at the beginning of the notebooks - so the right functions will be imported).
 
-These notebooks can be used for running all the ETL codes, exploring the collections, selecting the NFTs you would like to buy, etc. (will be uploaded soon, the development has just started). At the beginning of the file, you can select your environment (single server or distributed), so it will choose the right functions (from the src folder to run).
+The codes are W.I.P. - so none of the notebooks are final, as well as many of them are missing. Currently, only the PANDAS mode can be used (but it’ll be changed soon).
 
-## Data Ingestion - API related codes
-
-This folder contains all the codes which download the transactions, and the asset/collection descriptions to the staging area (will be uploaded soon, the development has just started). Thanks to [OpenSea](https://opensea.io/) for sharing all of it. Also, they have a [detailed API reference doc](https://docs.opensea.io/reference/api-overview).
+Thanks to [OpenSea](https://opensea.io/) for sharing their data and providing a [detailed API reference doc](https://docs.opensea.io/reference/api-overview).
 
 ![https://storage.googleapis.com/opensea-static/Logomark/OpenSea-Full-Logo%20(dark).png](https://storage.googleapis.com/opensea-static/Logomark/OpenSea-Full-Logo%20(dark).png)
 
-## Single Server Solution
+## Notebooks on the Main Folder
 
-If you would like to try out these codes on a single server (probably in your PC/notebook), you can use these codes. These are not always the most effective ones, but you are able to run them with lower memory usage - in a low-performance environment, using just Anaconda for instance (neither pyspark knowledge nor access to GCP is necessary).
+As above mentioned, these notebooks are running all of the functions. Some of them are cores (downloading data, running ETLs, executing analysis, and optimizing portfolio), while others are exploring the data.
 
-## GCP version
+The notebooks are numbered in the order of execution. The notebooks themselves contain the instructions about how to run them (markdown notes).
 
-If you would like to run the codes on a distributed system (AWS or GCP), you can use these libraries. In function, these are totally the same as the “single server” ones, but these are faster, and you can process the full dataset at once. 
+If you are using your own notebook (and do not have pyspark there), you can use the “PANDAS” running mode. It will run slower - as you can run it in smaller batches. If you’re installing a GCP environment, then it is better to select the “PYSPARK” mode at the beginning.
+
+## ./src subfolder
+
+This folder contains all the codes which are used by the main notebooks:
+
+- **config.py**: contains the paths of the input/output folders + some runtime parameters (in the development phase, the values are mainly hardcoded to the notebook, later on these will be cleansed)
+- **config_API.py**: the [OpenSea API keys](https://docs.opensea.io/reference/request-an-api-key) should be updated here. If a user has several API keys, more can be added (and later on the loaders will parallelize the API calling).
+- **util.py**: contains functions that are used by several loaders.
+- **api_dl.py**: downloading Raw NFT data from OpenSea (calling the API). It saves the JSON files to pickle files.
+- **ETL_00_rawToStage.py**: wrapping out the downloaded JSON files (saved to pickle) and saving them to partitioned parquet files to the stage area (the tokens and the collections are held redundantly - as only the next loader unify them).
+- **ETL_01_stageToNDS.py**: loading the token, collection, and the transaction tables to the Normalized Data Store (NDS). It solves some of the data issues (duplicated transactions, seller/buyer address related anomalies) as well.
+- **ETL_02_analyticsDM.py:** creating an analytics data mart from the normalized data store (which will be the base of all the codes). It contains multiple in-between layers, as some of the DM tables are depending on each other.
+- **EXPL_00_visualization.py**: contains functions used for visualization.
+- **other**: the analytics/kite codes will be held here as well, the first versions will be shared soon.
+
+# Single Server vs. GCP Running mode
+
+As mentioned above, in some of the notebooks, the way of running can be selected: PANDAS - for a single server without pyspark, and PYSPARK for running the codes on GCP.
+
+Some of the functions (like ETL_01_stageToNDS.py) exist in 2 versions (one with a _pyspark postfix), and during the import, the notebook selects the right source file for the running mode. As the function names are the same (just the implementation is different), nothing should be changed in the notebook while switching from a single server to GCP.
 
 # How to Use
 
-You can download the notebooks to the folder you’d like to use them, and create an src subfolder to the same place. Download all the .py files to the src folder (from the single server solution or the GCP version), and you are ready to go. Some tutorial videos will be shared soon with the details.
+You can clone the repository and “download” (pull) the notebooks and the ./src subfolder. After you can run the notebooks one by one, following the instructions there (currently W.I.P., so just some of the notebooks are working).
 
-# Questions to Answer (with the analyses)
+# Methodology (brief summary of the ideas behind)
 
-A detailed methodology document will arrive. Till then, here is the list of ideas that are implemented in the notebooks or in [LynxKite](https://lynxkite.com/) (most of the graph-related or GCN-based parts).
+A detailed methodology document will be provided later. Here you can read a list of ideas that are implemented (or under implementation) in the notebooks and in [LynxKite](https://lynxkite.com/) (a GCN-able graph analytics tool with a comfortable UI). These ideas will be the base of future price prediction.
 
 [https://repository-images.githubusercontent.com/251277949/d0add180-7294-11ea-8ee3-6ca69fddb879](https://repository-images.githubusercontent.com/251277949/d0add180-7294-11ea-8ee3-6ca69fddb879)
 
-## Following Successful Traders
+## Trader Statistics - basics
 
-Analyzing traders and creating success KPIs (e.g., realized profit till date w/wo holding). Examine the collections or minters: which are those, which are popular among the successful traders. Will these tokens be worth a lot in the future?
+Success KPIs can be created for the traders by their past transactions (e.g., realized profit till date w/wo holding, etc.). The impact on the NFT’s future price should be examined if a “successful” trader buys in from the same collection or from the same minter.
 
-Some of the traders can be handled as galleries. The question is if there is any gallery that guarantees success? (Barabási-Albert Laszlo’s idea)
+## Trader Statistics - galleries and influencers
 
-## Following the Influencers
+The traders can be handled as galleries, as the OpenSea users can browse the holdings of each collector. The question is if there is any gallery that guarantees success? (Barabási-Albert Laszlo’s idea).
 
-Are there any traders who affect the price of the NFT (or the price of the other NFTs in the collection)? Basically in this analysis, we are checking the price-level increments among the collections (with some filter, like not only 1-time jump) and if there is a verified jump, we mark the traders who bought from them a bit before.
+Also, an influence graph can be made across traders (if a trader buys from a collection/minter, and another follows within a time frame, we can add a directed influence edge between the two traders). Influence metrics can be calculated in this graph. The price change of NFTs, after a big influencer buys from the same collection/minter should be examined.
 
-Summarising these flags over time could lead us to the influencers. The analysis is the same from here: does it worth buying from the same collections/minters as these influencers?
+## Minter Statistics - basics
 
-The influencer score could be also made on finding jumps on the minters’ historical data.
+Success KPIs can be created for the minters as well. The impact of a recent success should be examined for the minter’s earlier work. Also, past success should affect the price of future works (which will be checked as well). 
 
-## Earlier Pieces of Recently Discovered Minters
+## Graph-based metrics
 
-Check how the earlier pieces’ prices are changing of the recently discovered minters. Does it worth buying the recently discovered minters’ earlier collections? (Also, is it possible to predict, which minters will be hyped?)
+Trader graphs (buyer/seller) based on transactions could be made. It can be both used for adding some further features to the trader KPI table, and for identifying some fraud networks (when a group of traders makes an artificial hype, or when the NFT is used for money laundering - after cracking some wallets). Using this information can be useful for all the other analyses. 
 
-## New Pieces of Famous Artists (minters)
+On a trader - NFT bipartite graph, some community-based features could be derived for the NFTs which could be important for their future value prediction.
 
-If an artist is already accepted, will their later work be also worth a lot? Does it worth buying them?
+An NFT similarity graph (e.g., had common traders or minters, belongs to the same collection, sharing several features - derived by computer vision, etc.) could be used as a base of GCN for estimating the real value of each NFT (and for identifying possible arbitrage events).
 
-## Trader - NFT graph
+## Collection/Minter Trajectories
 
-Visualize the trader NFT graph (till time), and also add the future values of some NFTs. Try to create some graph community-based models. This graph can be also the base of the NFT similarity graph, where graph convolutional networks can be tried out (for current/future value estimation).
+Typical patterns can be identified by analyzing the time series of the average (median, top/bottom decile, etc.) value of a collection. After the first months of movements, predictions can be made for future values.
 
-## Buyer - Seller graph
-
-The transactional graph could help to identify the fraud networks (some traders with huge losses make some minters rich). Also, some other interesting patterns might be found. By using the ether-tracker / the Google Cloud data, some full fraud chains could be explored from the cracked wallets to the minters. (However, I am not sure of their existence, there are easier ways for money laundering in the blockchain world). The found suspicious minters/traders can be handled in the data for increasing the accuracy.
-
-## NFT similarity graph
-
-The nodes would be the NFTs and the edges would represent the similarity (filtered over a value). Using a Graph Convolutional Network on this graph can help to estimate the value of the NFTs (current and future). If an estimated value is much higher than the original one, the NFT might worth to be bought.
-
-## Drivers of Asset Value
+## Unifying Analyses, Identifying the Real Value Drivers
 
 Applying Machine Learning to all features for estimating the future price of an asset (NFT) could also show which drivers are the most important ones (SHAP analysis for instance). 
 
 Also, this analysis would use all the mentioned ideas above for predicting the future value (with different timeframes) of an NFT. The analysis should also give some lower value where the token can be sold with a given confidence.
 
-## How Social Networks Influences Prices
+# Ideas for later
 
-Checking galleries (web-page), social network communities/platforms (like Twitter or Reddit) that influence the price of the future mints. Try to find out which future NFT to buy. Rarity scores should be checked as well.
+In a second phase, the following can be discovered:
+
+- **Pre-launching price prediction of collections**: analyzing the collection’s social network activity (Twitter, Instagram, Discord, etc.) and their minters/creators’ earlier projects.
